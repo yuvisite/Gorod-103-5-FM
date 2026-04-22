@@ -492,11 +492,6 @@ const App: React.FC = () => {
                      </h1>
                      <span className="text-win-green font-pixel text-2xl tracking-widest bg-black/50 px-2 mt-1 inline-block">103.4 FM</span>
                  </div>
-                 
-                 {/* Top Right Ad Spot */}
-                 <div className="w-60 h-16 bg-gray-200 border-2 border-gray-400 flex items-center justify-center animate-pulse">
-                     <span className="text-[10px] text-gray-500 font-pixel">РЕКЛАМА (468x60)</span>
-                 </div>
              </div>
              
              <div className="relative z-10 text-right text-win-light text-xs font-bold font-pixel mb-1 flex justify-between items-end">
@@ -516,7 +511,7 @@ const App: React.FC = () => {
                   <div className="marquee-content uppercase text-sm">
                       {isEASActive ? 
                         "!!! ВНИМАНИЕ !!! ПРОВЕРКА СИСТЕМЫ ОПОВЕЩЕНИЯ !!! ОБНАРУЖЕНА УГРОЗА !!! ВНИМАНИЕ !!!" : 
-                        "+++ ДОБРО ПОЖАЛОВАТЬ НА ОФИЦИАЛЬНЫЙ САЙТ РАДИОСТАНЦИИ ГОРОД ПЛЮС 103.4 FM +++ ПРЯМОЙ ЭФИР КРУГЛОСУТОЧНО +++ НОВОСТИ РЕГИОНА КАЖДЫЙ ЧАС +++"
+                        "+++ ДОБРО ПОЖАЛОВАТЬ НА ОФИЦИАЛЬНЫЙ САЙТ РАДИОСТАНЦИИ ГОРОД ПЛЮС 103.4 FM +++ ПРЯМОЙ ЭФИР КРУГЛОСУТОЧНО +++ ЗАКАЗЫВАЙТЕ ПЕСНИ ПО ТЕЛЕФОНУ 555-01-02 +++ НОВОСТИ РЕГИОНА КАЖДЫЙ ЧАС +++"
                       }
                   </div>
               </div>
@@ -961,22 +956,6 @@ const App: React.FC = () => {
                        <div className="text-gray-600 text-xs uppercase font-bold">{month}</div>
                        <div className="text-[10px] text-gray-500">{weekday}</div>
                    </div>
-
-                  {/* Banners Area */}
-                  <div className="space-y-2 mt-4 text-center">
-                      <div className="w-[88px] h-[31px] bg-blue-900 border border-white mx-auto flex items-center justify-center text-[9px] text-white font-pixel">
-                          HOT LOG
-                      </div>
-                      <div className="w-[88px] h-[31px] bg-purple-800 border border-white mx-auto flex items-center justify-center text-[9px] text-white font-pixel">
-                          RAMBLER TOP
-                      </div>
-                      <div className="w-[88px] h-[31px] bg-green-700 border border-white mx-auto flex items-center justify-center text-[9px] text-white font-pixel">
-                          GEOCITIES
-                      </div>
-                       <div className="w-[88px] h-[31px] bg-red-700 border border-white mx-auto flex items-center justify-center text-[9px] text-white font-pixel">
-                          MAIL.RU
-                      </div>
-                  </div>
 
                   <div className="mt-auto text-[9px] text-center text-gray-400">
                       Site best viewed in IE 6.0<br/>Resolution 800x600
