@@ -6,7 +6,11 @@
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 
 **This was made via Google AI Studio for fun and doesnt pretend to be some serious thing**
-**GorodPlus 103.4 FM** is an stylysed as website of some reginal radi station Gorod Plus 103.4 FM web application that simulates a old 2000s crappy regional radio station sound. It also also have other modes, not only radio ranging from classic AM radio static to the muffled sound of a radio playing in the next room or PA system.
+
+**GorodPlus 103.4 FM** is an stylysed as website of some reginal radio station Gorod Plus 103.4 FM web application that simulates a old 2000s crappy regional radio station sound. It also also have other modes, not only radio ranging from classic AM radio static to the muffled sound of a radio playing in the next room or PA system.
+
+# Demonstration
+Here i put link to youtube 
 
 ## Key Features
 
