@@ -10,7 +10,8 @@
 **GorodPlus 103.4 FM** is an stylysed as website of some reginal radio station Gorod Plus 103.4 FM web application that simulates a old 2000s crappy regional radio station sound. It also also have other modes, not only radio ranging from classic AM radio static to the muffled sound of a radio playing in the next room or PA system.
 
 # Demonstration
-Here i put link to youtube 
+Here i put link to youtube in future.
+Embeded player to Youvi, no no, to Youtube
 
 ## Key Features
 
@@ -23,13 +24,13 @@ Here i put link to youtube
   - **Shortwave Fade**: Muffled signals that drift in and out with sea-sick wobble.
   - **Polyphonic Ringtone**: 8-bit quantization artifacts for a 2000s mobile feel.
 - **Spatial Simulation**:
-  - Hear your music as if it's playing in an **Auditorium**, through a **Station PA**, or even from the **Next Room**.
+  - Hear your music as if it's playing in an **Auditorium**, through a **Station PA**, or even from the **Next Room** (pururururrurn pururu pururururrin).
 - **Interactive Interference**:
   - **Manual Tuner**: Drag the frequency slider to find the "sweet spot" or intentionally introduce static and cross-talk from neighboring stations.
   - **Auto-Interference**: Modes (Weak, Medium, Hard) that dynamically change signal quality over time.
 - **Retro UI**:
   - Looks like site from 2000s. Simulacrum on tailwind because its AI Studio and not my.
-- **Emergency Alert System (EAS)**: Simulate broadcast interruptions with realistic alert tones.
+- **Emergency Alert System (EAS)**: Simulate broadcast interruptions with realistic alert tones. (american EAS, idk why it on eastern europe station but idc)
 - **Recording & Export**: Capture your processed audio sessions and download them as WAV or WebM files.
 
 ## Technical Stack
