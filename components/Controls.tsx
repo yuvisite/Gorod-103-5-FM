@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatTime } from '../utils/audioUtils';
 
 interface ControlsProps {
@@ -6,7 +6,7 @@ interface ControlsProps {
   onPlayPause: () => void;
   currentTime: number;
   duration: number;
-  onSeek: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSeek: (time: number) => void;
   volume: number;
   onVolumeChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
@@ -20,23 +20,46 @@ const Controls: React.FC<ControlsProps> = ({
   volume,
   onVolumeChange
 }) => {
+  // Local state to handle smooth dragging without constantly restarting the engine
+  const [localTime, setLocalTime] = useState(currentTime);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Sync local time with engine time only when NOT dragging
+  useEffect(() => {
+    if (!isDragging) {
+      setLocalTime(currentTime);
+    }
+  }, [currentTime, isDragging]);
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsDragging(true);
+    setLocalTime(parseFloat(e.target.value));
+  };
+
+  const handleSliderCommit = () => {
+    setIsDragging(false);
+    onSeek(localTime);
+  };
+
   return (
     <div className="flex flex-col gap-2 w-full">
       
       {/* Time & Scrubber */}
       <div className="flex items-center gap-2 bg-[#111] px-2 py-1 border border-gray-600 shadow-inner">
-        <span className="text-[10px] font-pixel text-win-green w-10 text-right">{formatTime(currentTime)}</span>
+        <span className="text-[10px] font-pixel text-win-green w-10 text-right">{formatTime(localTime)}</span>
         <input
           type="range"
           min="0"
           max={duration || 0}
           step="0.1"
-          value={currentTime}
-          onChange={onSeek}
+          value={localTime}
+          onChange={handleSliderChange}
+          onMouseUp={handleSliderCommit}
+          onTouchEnd={handleSliderCommit}
           className="flex-1 h-2 bg-[#333] appearance-none cursor-pointer"
           style={{
              backgroundImage: 'linear-gradient(#00ff00, #00ff00)',
-             backgroundSize: `${(currentTime/duration)*100}% 100%`,
+             backgroundSize: `${(localTime/(duration || 1))*100}% 100%`,
              backgroundRepeat: 'no-repeat'
           }}
         />

@@ -13,7 +13,15 @@ export enum SpatialEffect {
   NONE = 'Direct',
   NEXT_ROOM = 'Next Room',
   AUDITORIUM = 'Auditorium',
-  PA_SYSTEM = 'PA System'
+  PA_SYSTEM = 'Station PA',
+  CITY_ALERT = 'City Alert (Distant)'
+}
+
+export enum AutoInterferenceMode {
+  OFF = 'OFF',
+  WEAK = 'WEAK',
+  MEDIUM = 'MEDIUM',
+  HARD = 'HARD'
 }
 
 export interface AudioState {

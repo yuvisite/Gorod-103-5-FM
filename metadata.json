@@ -1,5 +1,6 @@
 {
   "name": "Lo-Fi Radio Simulator",
   "description": "A local, private audio player that applies real-time vintage radio effects to your music files.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

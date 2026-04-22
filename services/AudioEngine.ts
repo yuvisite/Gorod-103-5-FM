@@ -1,9 +1,12 @@
-import { PresetType, PresetConfig, SpatialEffect } from '../types';
+import { PresetType, PresetConfig, SpatialEffect, AutoInterferenceMode } from '../types';
 import { makeDistortionCurve, makeQuantizationCurve, createNoiseBuffer, createImpulseResponse, audioBufferToWav } from '../utils/audioUtils';
 
 export class AudioEngine {
   private ctx: AudioContext;
   private sourceNode: AudioBufferSourceNode | null = null;
+  
+  // Callbacks
+  public onTrackEnd: (() => void) | null = null;
   
   // Secondary Source (Neighboring Station)
   private interferenceBuffer: AudioBuffer | null = null;
@@ -88,9 +91,16 @@ export class AudioEngine {
   
   // Mix State
   private manualNoiseLevel: number = 0;
-  private crossfadeLevel: number = 0;
+  private crossfadeLevel: number = 0; // User Set Level
   private isEASActive: boolean = false;
   
+  // Auto Interference State
+  private autoInterferenceMode: AutoInterferenceMode = AutoInterferenceMode.OFF;
+  private autoInterferenceOffset: number = 0;
+  private autoNoiseOffset: number = 0;
+  private autoFilterMultiplier: number = 1.0;
+  private autoTunerTimeout: any = null;
+
   // Crash State
   private isCrashed: boolean = false;
   private lastPresetConfig: PresetConfig | null = null;
@@ -108,7 +118,6 @@ export class AudioEngine {
     this.destStream = this.ctx.createMediaStreamDestination();
 
     // --- Tuning Simulation Node ---
-    // Added a specific filter to simulate "losing the signal" quality during crossfade
     this.tuningLowPass = this.ctx.createBiquadFilter();
     this.tuningLowPass.type = 'lowpass';
     this.tuningLowPass.frequency.value = 22000;
@@ -231,18 +240,8 @@ export class AudioEngine {
   }
 
   private setupRouting() {
-    // ROUTING:
-    // Source -> MusicGain -> TuningFilter -> PreEffectsMix
-    // Interference -> InterferenceGain -> PreEffectsMix
-    // Noise -> NoiseGain -> PreEffectsMix
-    // Others -> PreEffectsMix
-    
-    // PreEffectsMix -> Wobble -> AM -> HP -> LP -> Dist -> Crush -> Comp -> Spatial -> Master
-    
-    // 1. Inputs to Chain
     this.preEffectsMix.connect(this.wobbleDelay);
 
-    // 2. The Chain
     this.wobbleDelay.connect(this.amModulator);
     this.amModulator.connect(this.highPassFilter);
     this.highPassFilter.connect(this.lowPassFilter);
@@ -253,7 +252,6 @@ export class AudioEngine {
     this.compressor.connect(this.spatialInput);
     this.spatialInput.connect(this.spatialOutput);
 
-    // 3. Output
     this.spatialOutput.connect(this.masterGain);
     this.masterGain.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
@@ -263,24 +261,32 @@ export class AudioEngine {
   // --- MIXING & PHYSICS ENGINE ---
 
   private updateMix() {
-      if (this.isCrashed) return; // Mix is locked during crash
+      if (this.isCrashed) return; 
 
       const t = this.ctx.currentTime;
       
-      const mainVol = this.isBroadcastCut ? 0 : Math.cos(this.crossfadeLevel * Math.PI / 2);
-      const neighborVol = this.isBroadcastCut ? 0 : Math.sin(this.crossfadeLevel * Math.PI / 2);
+      // Combine User Settings with Auto-Interference Offsets
+      // We clamp 0-1
+      const effectiveCrossfade = Math.max(0, Math.min(1, this.crossfadeLevel + this.autoInterferenceOffset));
+      const effectiveNoiseLevel = Math.max(0, Math.min(1, this.manualNoiseLevel + this.autoNoiseOffset));
 
-      const tuningNoise = Math.sin(this.crossfadeLevel * Math.PI) * 0.4;
+      const mainVol = this.isBroadcastCut ? 0 : Math.cos(effectiveCrossfade * Math.PI / 2);
+      const neighborVol = this.isBroadcastCut ? 0 : Math.sin(effectiveCrossfade * Math.PI / 2);
+
+      const tuningNoise = Math.sin(effectiveCrossfade * Math.PI) * 0.4;
       
-      const centerDip = Math.sin(this.crossfadeLevel * Math.PI);
-      const filterFreq = 22000 - (centerDip * 19000); 
+      const centerDip = Math.sin(effectiveCrossfade * Math.PI);
+      
+      // Calculate LowPass freq: drops when crossing stations, AND multiplied by auto-filter (for hard mode cuts)
+      const baseFilterFreq = 22000 - (centerDip * 19000); 
+      const finalFilterFreq = baseFilterFreq * this.autoFilterMultiplier;
 
       const targetMusicGain = this.isEASActive ? 0.05 : mainVol;
       
       this.musicGain.gain.setTargetAtTime(targetMusicGain, t, 0.1);
       this.interferenceGain.gain.setTargetAtTime(neighborVol, t, 0.1);
       
-      const totalNoise = Math.min(1.0, this.manualNoiseLevel + tuningNoise);
+      const totalNoise = Math.min(1.0, effectiveNoiseLevel + tuningNoise);
       if (totalNoise > 0.001) {
           if (!this.noiseNode) this.startNoise(totalNoise);
           this.noiseGain.gain.setTargetAtTime(totalNoise * 0.5, t, 0.1);
@@ -288,7 +294,81 @@ export class AudioEngine {
           this.noiseGain.gain.setTargetAtTime(0, t, 0.1);
       }
 
-      this.tuningLowPass.frequency.setTargetAtTime(filterFreq, t, 0.1);
+      this.tuningLowPass.frequency.setTargetAtTime(Math.max(100, finalFilterFreq), t, 0.1);
+  }
+
+  // --- AUTO INTERFERENCE LOGIC ---
+  public setAutoInterference(mode: AutoInterferenceMode) {
+      this.autoInterferenceMode = mode;
+      
+      // Reset logic
+      if (this.autoTunerTimeout) {
+          clearTimeout(this.autoTunerTimeout);
+          this.autoTunerTimeout = null;
+      }
+
+      if (mode === AutoInterferenceMode.OFF) {
+          this.autoInterferenceOffset = 0;
+          this.autoNoiseOffset = 0;
+          this.autoFilterMultiplier = 1.0;
+          this.updateMix();
+      } else {
+          this.runAutoTuner();
+      }
+  }
+
+  private runAutoTuner() {
+      if (this.autoInterferenceMode === AutoInterferenceMode.OFF) return;
+
+      let nextActionTime = 1000;
+      
+      // RESET to baseline occasionally for weak/medium to not get stuck
+      // Logic decides if we GLITCH or RESTORE this cycle
+      const isGlitch = Math.random() > 0.4; // 60% chance to restore to 0 offset
+
+      if (this.autoInterferenceMode === AutoInterferenceMode.WEAK) {
+          // WEAK: Occasional small drifts
+          if (Math.random() > 0.7) { // 30% chance of glitch
+               this.autoInterferenceOffset = Math.random() * 0.15; // Small tuning drift
+               this.autoNoiseOffset = Math.random() * 0.05;
+               this.autoFilterMultiplier = 0.8 + (Math.random() * 0.2); // Slight muffle
+          } else {
+               this.autoInterferenceOffset = 0;
+               this.autoNoiseOffset = 0;
+               this.autoFilterMultiplier = 1;
+          }
+          nextActionTime = 2000 + Math.random() * 3000; // Slow pace
+      } 
+      else if (this.autoInterferenceMode === AutoInterferenceMode.MEDIUM) {
+          // MEDIUM: Frequent static and channel bleed
+           if (Math.random() > 0.5) {
+               this.autoInterferenceOffset = Math.random() * 0.4;
+               this.autoNoiseOffset = Math.random() * 0.2;
+               this.autoFilterMultiplier = 0.4 + (Math.random() * 0.6); // Noticeable muffle
+          } else {
+               this.autoInterferenceOffset = 0;
+               this.autoNoiseOffset = 0;
+               this.autoFilterMultiplier = 1;
+          }
+          nextActionTime = 500 + Math.random() * 2000;
+      }
+      else if (this.autoInterferenceMode === AutoInterferenceMode.HARD) {
+          // HARD: Chaos / Vsrato mode
+          // Constant sweeping and breaking
+          this.autoInterferenceOffset = Math.random(); // Full range (0-1), playing neighbor station or silence
+          this.autoNoiseOffset = Math.random() * 0.7; // Heavy static bursts
+          
+          // Randomize filter heavily to simulate losing connection
+          this.autoFilterMultiplier = Math.random(); 
+          
+          // Extremely fast updates (jittery)
+          nextActionTime = 50 + Math.random() * 250;
+      }
+
+      this.updateMix();
+      
+      // Loop
+      this.autoTunerTimeout = setTimeout(() => this.runAutoTuner(), nextActionTime);
   }
 
   public setInterferenceLevel(level: number) {
@@ -320,45 +400,35 @@ export class AudioEngine {
     const t = this.ctx.currentTime;
 
     if (active) {
-        // 1. TAPE STOP EFFECT (Pitch Drop)
         if (this.sourceNode) {
             this.sourceNode.playbackRate.cancelScheduledValues(t);
             this.sourceNode.playbackRate.setValueAtTime(1, t);
-            // Drop to very slow speed over 2 seconds
             this.sourceNode.playbackRate.exponentialRampToValueAtTime(0.05, t + 2.0);
         }
 
-        // 2. CHAOTIC WOBBLE (LFO rev up)
         this.wobbleLFO.frequency.cancelScheduledValues(t);
         this.wobbleLFO.frequency.setValueAtTime(this.wobbleLFO.frequency.value, t);
-        this.wobbleLFO.frequency.linearRampToValueAtTime(20, t + 1.5); // Fast vibrato
+        this.wobbleLFO.frequency.linearRampToValueAtTime(20, t + 1.5); 
 
         this.wobbleGain.gain.cancelScheduledValues(t);
         this.wobbleGain.gain.setValueAtTime(this.wobbleGain.gain.value, t);
-        this.wobbleGain.gain.linearRampToValueAtTime(0.015, t + 1.5); // Deep depth
+        this.wobbleGain.gain.linearRampToValueAtTime(0.015, t + 1.5);
 
-        // 3. FILTER SWEEP (Closing down)
-        // We hijack the core LowPass filter
         this.lowPassFilter.frequency.cancelScheduledValues(t);
         this.lowPassFilter.frequency.setValueAtTime(this.lowPassFilter.frequency.value, t);
         this.lowPassFilter.frequency.exponentialRampToValueAtTime(50, t + 1.8);
 
-        // 4. VOLUME DIE OUT
-        // We kill the musicGain after the pitch drop starts
         this.musicGain.gain.cancelScheduledValues(t);
         this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, t);
         this.musicGain.gain.linearRampToValueAtTime(0, t + 1.9);
 
-        // 5. NOISE SWELL
-        // Temporary burst of static as signal dies
         if (!this.noiseNode) this.startNoise(0.8);
         this.noiseGain.gain.cancelScheduledValues(t);
         this.noiseGain.gain.setValueAtTime(this.noiseGain.gain.value, t);
         this.noiseGain.gain.linearRampToValueAtTime(0.8, t + 1.0);
-        this.noiseGain.gain.linearRampToValueAtTime(0, t + 2.0); // Then silence
+        this.noiseGain.gain.linearRampToValueAtTime(0, t + 2.0); 
 
     } else {
-        // RESTORE SIGNAL
         this.restoreSignal();
     }
   }
@@ -366,24 +436,19 @@ export class AudioEngine {
   private restoreSignal() {
       const t = this.ctx.currentTime;
       
-      // 1. Reset Playback Rate
       if (this.sourceNode) {
           this.sourceNode.playbackRate.cancelScheduledValues(t);
           this.sourceNode.playbackRate.setTargetAtTime(1.0, t, 0.1);
       }
 
-      // 2. Reset Filter & Effects to last known preset
       if (this.lastPresetConfig) {
           this.applyPreset(this.lastPresetConfig);
       } else {
-          // Default fallback
           this.lowPassFilter.frequency.setTargetAtTime(20000, t, 0.1);
           this.wobbleLFO.frequency.setTargetAtTime(0.5, t, 0.1);
           this.wobbleGain.gain.setTargetAtTime(0, t, 0.1);
       }
       
-      // 3. Force Update Mix to restore volumes
-      // We need a slight delay to ensure the ramp-up doesn't sound like a reverse tape stop
       setTimeout(() => {
           this.updateMix();
       }, 50);
@@ -507,7 +572,7 @@ export class AudioEngine {
     this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
     return this.audioBuffer.duration;
   }
-
+  
   public play(preset: PresetConfig, offset?: number) {
     if (!this.audioBuffer) return;
     
@@ -515,21 +580,27 @@ export class AudioEngine {
       this.ctx.resume();
     }
 
-    this.stop(false);
+    // Pass false to NOT reset the time, but we handle startOffset calculation manually below anyway.
+    this.stop(false); 
 
     this.sourceNode = this.ctx.createBufferSource();
     this.sourceNode.buffer = this.audioBuffer;
     this.sourceNode.loop = false;
+    
+    this.sourceNode.onended = () => {
+        // Since we explicitly kill onended in stop(), this should only fire for natural endings
+        this.isPlaying = false;
+        if (this.onTrackEnd) {
+            this.onTrackEnd();
+        }
+    };
 
-    // Route: Source -> MusicGain -> TuningFilter -> PreEffectsMix
     this.sourceNode.connect(this.musicGain);
     this.musicGain.connect(this.tuningLowPass);
     this.tuningLowPass.connect(this.preEffectsMix);
     
-    // Apply initial volumes
     this.updateMix();
 
-    // Secondary Source (Interference)
     if (this.interferenceBuffer) {
         this.interferenceNode = this.ctx.createBufferSource();
         this.interferenceNode.buffer = this.interferenceBuffer;
@@ -540,7 +611,10 @@ export class AudioEngine {
 
     this.applyPreset(preset);
 
-    const startOffset = offset !== undefined ? offset : this.pauseTime;
+    let startOffset = offset !== undefined ? offset : this.pauseTime;
+    if (startOffset < 0) startOffset = 0;
+    if (startOffset >= this.audioBuffer.duration) startOffset = 0;
+
     this.startTime = this.ctx.currentTime - startOffset;
     
     this.sourceNode.start(0, startOffset);
@@ -548,7 +622,10 @@ export class AudioEngine {
   }
 
   public stop(resetTime: boolean = true) {
+    // IMPORTANT: Kill the onended callback of the existing source so it doesn't 
+    // trigger a false "isPlaying = false" state update when we are just seeking/restarting.
     if (this.sourceNode) {
+      this.sourceNode.onended = null;
       try {
         this.sourceNode.stop();
         this.sourceNode.disconnect();
@@ -564,7 +641,6 @@ export class AudioEngine {
         this.interferenceNode = null;
     }
     
-    // Stop manual noise, but keep state for params
     if (this.noiseNode) {
         try {
             this.noiseNode.stop();
@@ -579,9 +655,15 @@ export class AudioEngine {
     this.isBroadcastCut = false;
     this.isCrashed = false;
     
+    // Stop Auto Tuner on full stop
+    if (resetTime) {
+        this.setAutoInterference(AutoInterferenceMode.OFF);
+    }
+
     if (resetTime) {
       this.pauseTime = 0;
-    } else {
+    } else if (this.isPlaying) {
+      // Capture the current pause time relative to when we started
       this.pauseTime = this.ctx.currentTime - this.startTime;
     }
     this.isPlaying = false;
@@ -600,7 +682,7 @@ export class AudioEngine {
   }
 
   public seek(time: number, preset: PresetConfig) {
-      if (this.isPlaying) {
+      if (this.isPlaying && this.sourceNode) {
           this.play(preset, time);
       } else {
           this.pauseTime = time;
@@ -612,7 +694,7 @@ export class AudioEngine {
   }
 
   public applyPreset(preset: PresetConfig) {
-    this.lastPresetConfig = preset; // Save for restoreSignal
+    this.lastPresetConfig = preset; 
     this.highPassFilter.frequency.setTargetAtTime(preset.highPassFreq, this.ctx.currentTime, 0.1);
     this.lowPassFilter.frequency.setTargetAtTime(preset.lowPassFreq, this.ctx.currentTime, 0.1);
 
@@ -620,9 +702,6 @@ export class AudioEngine {
     this.setQuantizeLevel(preset.quantizeAmount);
 
     this.setWobbleLevel(preset.wobbleAmount);
-
-    // Update noise params without restarting mix logic completely if possible
-    // But play() calls applyPreset, so we set the baseline manual noise here
     this.setNoiseLevel(preset.noiseLevel);
   }
 
@@ -680,7 +759,6 @@ export class AudioEngine {
               this.spatialInput.connect(this.spatialOutput); 
               break;
           case SpatialEffect.PA_SYSTEM:
-              // PA Logic V2
               this.delayNode.delayTime.value = 0.5;
               this.delayGain.gain.value = 0.1;
               this.delayOutputGain.gain.value = 0.35;
@@ -698,14 +776,37 @@ export class AudioEngine {
               this.delayNode.connect(this.delayOutputGain);
               this.delayOutputGain.connect(this.spatialOutput);
               break;
+          case SpatialEffect.CITY_ALERT:
+              this.paFilter.type = 'bandpass';
+              this.paFilter.frequency.value = 800; 
+              this.paFilter.Q.value = 2.0;
+
+              this.paGain.gain.value = 3.0;
+
+              this.delayNode.delayTime.value = 0.7;
+              this.delayGain.gain.value = 0.4; 
+              this.delayOutputGain.gain.value = 0.8; 
+              
+              this.roomFilter.frequency.value = 1000; 
+              
+              this.spatialInput.connect(this.paFilter);
+              this.paFilter.connect(this.paGain);
+              
+              this.paGain.connect(this.delayNode);
+              this.delayNode.connect(this.delayGain); 
+              this.delayGain.connect(this.delayNode);
+              this.delayNode.connect(this.delayOutputGain);
+              this.delayOutputGain.connect(this.roomFilter);
+
+              this.paGain.connect(this.roomFilter);
+              this.roomFilter.connect(this.spatialOutput);
+              break;
           case SpatialEffect.NONE:
           default:
               this.spatialInput.connect(this.spatialOutput);
               break;
       }
   }
-
-  // --- Offline Rendering ---
 
   public async renderOffline(
     preset: PresetConfig,
@@ -732,7 +833,6 @@ export class AudioEngine {
     const mixBus = offlineCtx.createGain();
     source.connect(mixBus);
 
-    // 2. Noise (Standard preset noise only)
     if (noiseLevel > 0) {
         const noise = offlineCtx.createBufferSource();
         noise.buffer = createNoiseBuffer(offlineCtx);
@@ -744,10 +844,6 @@ export class AudioEngine {
         noise.start();
     }
     
-    // Note: Offline rendering currently processes the Main Track through the effect chain.
-    // It does not capture the "Neighbor Station" dynamic crossfading as that is a live performance feature.
-
-    // 3. Effects Chain
     const wDelay = offlineCtx.createDelay(1.0);
     wDelay.delayTime.value = 0.05;
     
@@ -804,7 +900,6 @@ export class AudioEngine {
     const spInput = offlineCtx.createGain();
     const spOutput = offlineCtx.createGain();
     
-    // Connect MixBus to Chain
     mixBus.connect(wDelay);
     wDelay.connect(amGain);
     amGain.connect(hp);
@@ -814,7 +909,6 @@ export class AudioEngine {
     crusher.connect(comp);
     comp.connect(spInput);
 
-    // Apply Spatial
     if (spatialEffect === SpatialEffect.NEXT_ROOM) {
         const room = offlineCtx.createBiquadFilter();
         room.type = 'lowpass';
@@ -850,6 +944,39 @@ export class AudioEngine {
         fb.connect(dly);
         dly.connect(wetMix); 
         wetMix.connect(spOutput);
+    } else if (spatialEffect === SpatialEffect.CITY_ALERT) {
+        const paFilter = offlineCtx.createBiquadFilter();
+        paFilter.type = 'bandpass';
+        paFilter.frequency.value = 800;
+        paFilter.Q.value = 2.0;
+        
+        const paBoost = offlineCtx.createGain();
+        paBoost.gain.value = 3.0;
+        
+        const dly = offlineCtx.createDelay(2.0);
+        dly.delayTime.value = 0.7;
+        
+        const fb = offlineCtx.createGain();
+        fb.gain.value = 0.4;
+        
+        const wetMix = offlineCtx.createGain();
+        wetMix.gain.value = 0.8;
+        
+        const room = offlineCtx.createBiquadFilter();
+        room.type = 'lowpass';
+        room.frequency.value = 1000;
+        
+        spInput.connect(paFilter);
+        paFilter.connect(paBoost);
+        
+        paBoost.connect(dly);
+        dly.connect(fb);
+        fb.connect(dly);
+        dly.connect(wetMix);
+        wetMix.connect(room);
+        
+        paBoost.connect(room);
+        room.connect(spOutput);
     } else {
         spInput.connect(spOutput);
     }
@@ -861,8 +988,6 @@ export class AudioEngine {
     const blob = audioBufferToWav(renderedBuffer);
     return URL.createObjectURL(blob);
   }
-
-  // --- Recording ---
 
   public startRecording() {
       this.recordedChunks = [];
