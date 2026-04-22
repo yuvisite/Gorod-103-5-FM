@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Город Плюс 103.4 FM - Официальный сайт</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              win: {
+                main: '#006699', // Classic XP Blue
+                dark: '#003366',
+                light: '#66ccff',
+                green: '#00ff00', // Hacker green
+                cyan: '#00ffff',
+                bg: '#001a33'
+              }
+            },
+            fontFamily: {
+              sans: ['Verdana', 'Tahoma', 'sans-serif'],
+              pixel: ['"Courier New"', 'monospace'],
+            },
+            backgroundImage: {
+              'stripes': 'linear-gradient(0deg, transparent 50%, rgba(0, 50, 100, 0.5) 50%)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #001a33;
+        background-image: 
+          linear-gradient(rgba(0, 26, 51, 0.9), rgba(0, 26, 51, 0.9)),
+          url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23004080' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        color: #e5e5e5;
+      }
+      
+      /* 2000s Scrollbar */
+      ::-webkit-scrollbar {
+        width: 12px;
+        background: #003366;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #0099cc;
+        border: 1px solid #fff;
+        box-shadow: inset 1px 1px 0 rgba(255,255,255,0.5), inset -1px -1px 0 rgba(0,0,0,0.5);
+      }
+      
+      /* Bevel Effect Class */
+      .bevel-btn {
+        box-shadow: inset 1px 1px 0 rgba(255,255,255,0.4), inset -1px -1px 0 rgba(0,0,0,0.6);
+        border: 1px solid #004d80;
+      }
+      .bevel-panel {
+        border-top: 2px solid #3385ff;
+        border-left: 2px solid #3385ff;
+        border-right: 2px solid #001a33;
+        border-bottom: 2px solid #001a33;
+        background: #004080;
+      }
+      .bevel-inset {
+        border-top: 2px solid #00264d;
+        border-left: 2px solid #00264d;
+        border-right: 2px solid #3385ff;
+        border-bottom: 2px solid #3385ff;
+        background: #001a33;
+      }
+
+      /* Marquee Animation */
+      .marquee-container {
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      .marquee-content {
+        display: inline-block;
+        animation: marquee 15s linear infinite;
+      }
+      @keyframes marquee {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
