@@ -310,9 +310,8 @@ const App: React.FC = () => {
                  <span className="text-win-green font-pixel text-xl tracking-widest bg-black/50 px-2 mt-1">103.4 FM</span>
              </div>
              <div className="relative z-10 text-right text-win-light text-xs font-bold font-pixel">
-                 <div>СЕГОДНЯ: {new Date().toLocaleDateString()}</div>
-                 <div className="text-white">ЛУЧШИЕ ХИТЫ 2000-х</div>
-             </div>
+                <div>СЕГОДНЯ: {new Date().toLocaleDateString()}</div>
+            </div>
           </div>
 
           {/* Marquee Bar */}
@@ -612,8 +611,6 @@ const App: React.FC = () => {
                   {/* Bottom Text */}
                   <div className="mt-8 text-xs text-gray-500 font-sans border-t border-gray-300 pt-2">
                       <p>© 2004 Радиостанция "Город Плюс". Все права защищены.</p>
-                      <p>Адрес редакции: ул. Ленина 42, офис 305. Тел: 555-01-02</p>
-                      <p className="mt-2 text-[10px]">Designed by WebMaster_2000</p>
                   </div>
               </div>
           </div>
