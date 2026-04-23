@@ -1,6 +1,6 @@
-# GorodPlus 103.4 FM
+# Gorod 103.5 FM
 
-A simple web application that simulates the sound quality of an analog radiostation. And also  have other non radio effects. Works for uploaded music in site, fully local and offline
+A web application that simulates the sound quality of a some regional radio station signal from the Eastern Europe in early 2000s. And also  have other non radio effects.
 
 ГородПлюс is translates like CityPlus - generic Eastern Europe name. Doesnt affiliate with real medias with same or simillar name
 
@@ -34,8 +34,8 @@ Unlike simple "lo-fi" filters, this engine simulates the physical characteristic
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yuvisite/Gorodplus.git
-   cd Gorodplus
+   git clone https://github.com/yuvisite/Gorod-103-5-FM.git
+   cd Gorod-103-5-FM
    ```
 
 2. Install dependencies:
