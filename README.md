@@ -1,14 +1,16 @@
 # GorodPlus 103.4 FM
 
-A simple web application that simulates the sound of a regional radio station from the early 2000s. This project was created for fun and to experiment with the Web Audio API.
+A simple web application that simulates the atmosphere of a crappy regional radio station signal from the Eastern Europe in early 2000s. And also  have other non radio effects.
+
+ГородПлюс is translates like CityPlus - ultra generic name.
 
 ## Features
 
-- **Audio Presets**: Emulates various devices like AM radio, walkie-talkies, old telephones, and damaged speakers.
+- **Audio Presets**: Emulates various devices like AM radio, walkie-talkies, old telephones, and blown speakers.
 - **Spatial Effects**: Simulates sound coming from another room, an auditorium, or a public address system.
 - **Signal Interference**: Manual frequency tuning and automatic interference modes.
-- **UI**: interface styled after 2000s-era websites.
-- **EAS Simulation**: Includes Emergency Alert System tones and effects.
+- **UI**: A 2000s styled web site.
+- **EAS Simulation**: Includes Emergency Alert System tones (the American ones, idk why it here).
 - **Recording**: Export processed audio to WAV or WebM files.
 
 ## Tech Stack
