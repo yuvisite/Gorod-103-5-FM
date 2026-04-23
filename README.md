@@ -13,6 +13,16 @@ A simple web application that simulates the sound quality of a some regional rad
 - **EAS Simulation**: Includes Emergency Alert System tones (the American ones, idk why it here).
 - **Recording**: Export processed audio to WAV or WebM files.
 
+## Signal Propagation & Physics
+
+Unlike simple "lo-fi" filters, this engine simulates the physical characteristics of radio signal reception:
+
+- **Tuning Simulation**: Replicates the behavior of an analog tuner. Moving away from the center frequency dynamically narrows the signal bandwidth (low-pass filtering) and introduces resonant carrier noise.
+- **Atmospheric Fading**: Simulates long-distance AM propagation using LFO-driven gain ducking and modulation to replicate signal "drift" and atmospheric conditions.
+- **Station Interference**: Features a dual-buffer system where a "neighboring" station bleeds into the main broadcast based on frequency offset, following a trigonometric crossfade model.
+- **Mechanical Degradation**: Implements wow and flutter through modulated delay lines, along with random "tape snags" (sudden delay jumps) to emulate worn-out playback hardware.
+- **Hardware Simulation**: Includes high-order non-linear distortion curves and amplitude quantization (bit-crushing) to emulate cheap transistors and early digital components.
+
 ## Tech Stack
 
 - **React 19** & **Vite**
