@@ -1,6 +1,6 @@
 # GorodPlus 103.4 FM
 
-A simple web application that simulates the atmosphere of a crappy regional radio station signal from the Eastern Europe in early 2000s. And also  have other non radio effects.
+A simple web application that simulates the sound quality of a some regional radio station signal from the Eastern Europe in early 2000s. And also  have other non radio effects.
 
 ГородПлюс is translates like CityPlus - ultra generic name.
 
