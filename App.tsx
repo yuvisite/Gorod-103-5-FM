@@ -487,10 +487,9 @@ const App: React.FC = () => {
              
              <div className="relative z-10 flex justify-between items-start mt-4">
                  <div className="flex flex-col">
-                     <h1 className="text-5xl font-black text-white italic tracking-tighter drop-shadow-md">
-                         ГОРОД<span className="text-win-cyan">ПЛЮС</span>
+                     <h1 className="text-5xl font-black text-white italic tracking-tighter drop-shadow-md flex items-baseline gap-2">
+                         ГОРОД<span className="text-win-cyan text-3xl">103.5 FM</span>
                      </h1>
-                     <span className="text-win-green font-pixel text-2xl tracking-widest bg-black/50 px-2 mt-1 inline-block">103.4 FM</span>
                  </div>
              </div>
              
@@ -511,7 +510,7 @@ const App: React.FC = () => {
                   <div className="marquee-content uppercase text-sm">
                       {isEASActive ? 
                         "!!! ВНИМАНИЕ !!! ПРОВЕРКА СИСТЕМЫ ОПОВЕЩЕНИЯ !!! ОБНАРУЖЕНА УГРОЗА !!! ВНИМАНИЕ !!!" : 
-                        "+++ ДОБРО ПОЖАЛОВАТЬ НА ОФИЦИАЛЬНЫЙ САЙТ РАДИОСТАНЦИИ ГОРОД ПЛЮС 103.4 FM +++ ПРЯМОЙ ЭФИР КРУГЛОСУТОЧНО +++ ЗАКАЗЫВАЙТЕ ПЕСНИ ПО ТЕЛЕФОНУ 555-01-02 +++ НОВОСТИ РЕГИОНА КАЖДЫЙ ЧАС +++"
+                        "+++ ДОБРО ПОЖАЛОВАТЬ НА ОФИЦИАЛЬНЫЙ САЙТ РАДИОСТАНЦИИ ГОРОД 103.5 FM +++ ПРЯМОЙ ЭФИР КРУГЛОСУТОЧНО +++ ЗАКАЗЫВАЙТЕ ПЕСНИ ПО ТЕЛЕФОНУ 555-01-02 +++ НОВОСТИ РЕГИОНА КАЖДЫЙ ЧАС +++"
                       }
                   </div>
               </div>
