@@ -1,4 +1,4 @@
-# Gorod 103.5 FM
+# Gorod 103.5 FM (Город 103.5 ФМ)
 
 A web application that simulates the sound quality of a some regional radio station signal from the Eastern Europe in early 2000s. And also  have other non radio effects.
 
