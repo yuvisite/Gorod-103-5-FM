@@ -2,7 +2,7 @@
 
 A simple web application that simulates the sound quality of an analog radiostation. And also  have other non radio effects. Works for uploaded music in site, fully local and offline
 
-ГородПлюс is translates like CityPlus - generic East Europe name.
+ГородПлюс is translates like CityPlus - generic Eastern Europe name.
 
 ## Features
 
