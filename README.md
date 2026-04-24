@@ -2,7 +2,7 @@
 
 A web application that simulates the sound quality of a some regional radio station signal from the Eastern Europe in early 2000s. And also  have other non radio effects.
 
-ГородПлюс is translates like CityPlus - generic Eastern Europe name. Doesnt affiliate with real medias with same or simillar name
+Город is translates like City - generic Eastern Europe name, literally word for City. Doesnt affiliate with real media with same or simillar name
 
 ## Features
 
